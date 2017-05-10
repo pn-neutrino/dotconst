@@ -9,6 +9,75 @@ use PHPUnit\Framework\TestCase;
 
 class DotconstTest extends TestCase
 {
+    public function dataNormalizePath()
+    {
+        $s = DIRECTORY_SEPARATOR;
+
+        return [
+            ['', ''],
+            [$s, '/'],
+            [$s . '0', '/0/'],
+            [$s . 'home', '/home/'],
+            ['home', 'home/'],
+            [$s . 'home', '/home/test/..'],
+            [$s . 'home', '/home/test/../'],
+            [$s . 'home' . $s . 'some', '/home/test/.././some'],
+            [$s . 'home' . $s . 'some', '/../home/test/.././some'],
+            [$s . 'hello' . $s . '0' . $s . 'you', '/hello/0//how/../are/../you'],
+            [$s . 'hello' . $s . '0' . $s . 'are' . $s . 'you', '/ /hello/0// / /how/../are/you/./././'],
+            [$s . 'hello' . $s . '0.0' . $s . 'are' . $s . 'you', '/ /hello/0.0/././././////how/../are/you'],
+        ];
+    }
+
+    /**
+     * @dataProvider dataNormalizePath
+     *
+     * @param $expected
+     * @param $path
+     */
+    public function testNormalizePath($expected, $path)
+    {
+        $reflecion = new \ReflectionClass(Loader::class);
+        $method = $reflecion->getMethod('normalizePath');
+        $method->setAccessible(true);
+
+        $this->assertEquals($expected, $method->invoke(null, $path));
+    }
+
+    public function dataDynamize()
+    {
+        return [
+            [['max_int' => PHP_INT_MAX], ['max_int' => '@php/const:PHP_INT_MAX']],
+            [['max_int' => PHP_INT_MAX], ['max_int' => '@php/const:PHP_INT_MAX@']],
+            [['separator' => DIRECTORY_SEPARATOR], ['separator' => '@php/const:DIRECTORY_SEPARATOR']],
+            [['separator' => DIRECTORY_SEPARATOR], ['separator' => '@php/const:DIRECTORY_SEPARATOR@']],
+            [['separator' => DIRECTORY_SEPARATOR . '.testing'], ['separator' => '@php/const:DIRECTORY_SEPARATOR@.testing']],
+
+            [['directory' => 'directory'], ['directory' => '@php/dir']],
+            [['directory' => 'directory'], ['directory' => '@php/dir@']],
+            [['directory' => 'directory/testing'], ['directory' => '@php/dir@/testing']],
+            [['directory' => 'directory' . DIRECTORY_SEPARATOR . 'testing'], ['directory' => '@php/dir:/testing@']],
+            [['directory' => 'directory' . DIRECTORY_SEPARATOR . 'testing/sub'], ['directory' => '@php/dir:/testing@/sub']],
+        ];
+    }
+
+    /**
+     * @dataProvider dataDynamize
+     *
+     * @depends      testNormalizePath
+     *
+     * @param $expected
+     * @param $array
+     */
+    public function testDynamize($expected, $array)
+    {
+        $reflecion = new \ReflectionClass(Loader::class);
+        $method = $reflecion->getMethod('dynamize');
+        $method->setAccessible(true);
+
+        $this->assertEquals($expected, $method->invoke(null, $array, 'directory'));
+    }
+
     /**
      * @expectedException \Neutrino\Dotconst\Exception\InvalidFileException
      */
@@ -38,6 +107,10 @@ class DotconstTest extends TestCase
         $this->assertEquals([], $config);
     }
 
+    /**
+     * @depends testNormalizePath
+     * @depends testDynamize
+     */
     public function testFromFiles()
     {
         $config = Loader::fromFiles(__DIR__ . '/../.app_fake');
@@ -86,7 +159,7 @@ class DotconstTest extends TestCase
                 $triggedError[] = var_export(func_get_args(), true);
             });
 
-            $appPath     = __DIR__ . '/../.app_fake';
+            $appPath = __DIR__ . '/../.app_fake';
             $compilePath = 'wrong path';
             Compile::compile($appPath, $compilePath);
         } catch (InvalidFileException $e) {
@@ -103,7 +176,7 @@ class DotconstTest extends TestCase
      */
     public function testCompile()
     {
-        $appPath     = __DIR__ . '/../.app_fake';
+        $appPath = __DIR__ . '/../.app_fake';
         $compilePath = $appPath . '/bootstrap/compile';
         $compileFile = $compilePath . '/consts.php';
 
@@ -136,7 +209,7 @@ class DotconstTest extends TestCase
             "define('OVERRIDE_ARR_V1', 'over1');",
             "define('OVERRIDE_ARR_V2', 'over2');",
             "define('OVERRIDE_ARR_V3', 'over3');",
-            ""
+            "",
         ]), $content);
     }
 
@@ -159,7 +232,7 @@ class DotconstTest extends TestCase
      */
     public function testRunWithCompile()
     {
-        $appPath     = __DIR__ . '/../.app_fake';
+        $appPath = __DIR__ . '/../.app_fake';
         $compilePath = __DIR__ . '/../.app_fake/bootstrap/compile';
 
         Compile::compile($appPath, $compilePath);

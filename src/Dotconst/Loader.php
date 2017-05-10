@@ -86,10 +86,11 @@ class Loader
             throw new InvalidFileException('Failed parse file : ' . $file);
         }
 
-        $config = self::upperKeys($config);
+        return self::dynamize(self::upperKeys($config), dirname($file));
+    }
 
-        $dir = dirname($file);
-
+    private static function dynamize($config, $dir)
+    {
         array_walk_recursive($config, function (&$value) use ($dir) {
             $value = self::variabilize('const:([\w:\\\\]+)', $value, function ($match) {
                 return constant($match[1]);
@@ -163,24 +164,32 @@ class Loader
      */
     private static function normalizePath($path)
     {
-        // Process the components
+        if (empty($path)) {
+            return '';
+        }
+
         $path = str_replace(DIRECTORY_SEPARATOR, '/', $path);
 
-        $startWithSlash = strpos($path, '/') === 0;
+        $parts = explode('/', $path);
 
-        $parts = explode('/', str_replace(DIRECTORY_SEPARATOR, '/', $path));
-        $safe  = [];
+        $safe = [];
         foreach ($parts as $idx => $part) {
-            if (empty($part) || ('.' == $part)) {
-                continue;
+            if (($idx == 0 && empty($part))) {
+                $safe[] = '';
+            } elseif (trim($part) == "" || $part == '.') {
             } elseif ('..' == $part) {
-                array_pop($safe);
-                continue;
+                if (null === array_pop($safe) || empty($safe)) {
+                    $safe[] = '';
+                }
             } else {
                 $safe[] = $part;
             }
         }
 
-        return ($startWithSlash ? DIRECTORY_SEPARATOR : '') . implode(DIRECTORY_SEPARATOR, $safe);
+        if (count($safe) === 1 && $safe[0] === '') {
+            return DIRECTORY_SEPARATOR;
+        }
+
+        return implode(DIRECTORY_SEPARATOR, $safe);
     }
 }
