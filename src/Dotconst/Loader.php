@@ -164,6 +164,10 @@ class Loader
     private static function normalizePath($path)
     {
         // Process the components
+        $path = str_replace(DIRECTORY_SEPARATOR, '/', $path);
+
+        $startWithSlash = strpos($path, '/') === 0;
+
         $parts = explode('/', str_replace(DIRECTORY_SEPARATOR, '/', $path));
         $safe  = [];
         foreach ($parts as $idx => $part) {
@@ -177,9 +181,6 @@ class Loader
             }
         }
 
-        // Return the "clean" path
-        $path = implode(DIRECTORY_SEPARATOR, $safe);
-
-        return $path;
+        return ($startWithSlash ? DIRECTORY_SEPARATOR : '') . implode(DIRECTORY_SEPARATOR, $safe);
     }
 }
