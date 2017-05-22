@@ -4,9 +4,16 @@ namespace Neutrino\Dotconst;
 
 use Neutrino\Dotconst\Exception\InvalidFileException;
 
+/**
+ * Class Compile
+ *
+ * @package Neutrino\Dotconst
+ */
 class Compile
 {
     /**
+     * Compile loaded & parsed ini files to php files.
+     *
      * @param $path
      * @param $compilePath
      *

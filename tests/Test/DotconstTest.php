@@ -108,8 +108,8 @@ class DotconstTest extends TestCase
     }
 
     /**
-     * @depends testNormalizePath
-     * @depends testDynamize
+     * depends testNormalizePath
+     * depends testDynamize
      */
     public function testFromFiles()
     {
@@ -120,6 +120,8 @@ class DotconstTest extends TestCase
             'PUBLIC_PATH'     => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'public',
             'STORAGE_PATH'    => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage',
             'OVERRIDE_PATH'   => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'fake_dir',
+            'NESTED'          => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage',
+            'NESTEDSUB'       => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage/test',
             'APP_ENV'         => 'testing',
             'TEST_INT'        => 123,
             'TEST_FLOAT'      => 123.123,
@@ -189,12 +191,11 @@ class DotconstTest extends TestCase
         $this->assertEquals(implode(PHP_EOL, [
             '<?php',
             "define('BASE_PATH', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')), true) . ");",
-            "define('PUBLIC_PATH', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'public',
-                true) . ");",
-            "define('STORAGE_PATH', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage',
-                true) . ");",
-            "define('OVERRIDE_PATH', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'fake_dir',
-                true) . ");",
+            "define('PUBLIC_PATH', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'public', true) . ");",
+            "define('STORAGE_PATH', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage', true) . ");",
+            "define('OVERRIDE_PATH', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'fake_dir', true) . ");",
+            "define('NESTED', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage', true) . ");",
+            "define('NESTEDSUB', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage/test', true) . ");",
             "define('APP_ENV', 'testing');",
             "define('TEST_INT', 123);",
             "define('TEST_FLOAT', 123.123);",

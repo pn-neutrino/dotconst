@@ -7,15 +7,19 @@ use Neutrino\Dotconst\Exception\InvalidFileException;
 /**
  * Class Loader
  *
- * @package Neutrino\Dotenv
+ * @package Neutrino\Dotconst
  */
 class Loader
 {
     /**
-     * Loads environment variables from .env.php to getenv(), $_ENV, and $_SERVER automatically.
+     * Loads application constants from .const.ini & .const.{env}.ini files
+     * {env} is matched by [APP_ENV] constant
+     *
+     * If a "consts.php" file is present in the $compilePath, .consts.ini & .const.{env}.ini was not loaded & parsed,
+     * the compiled files is automatically loaded.
      *
      * @param string $path Path to ".const.ini" files
-     * @param null   $compilePath
+     * @param string $compilePath
      */
     public static function load($path, $compilePath = null)
     {
@@ -27,6 +31,8 @@ class Loader
     }
 
     /**
+     * Load Compiled contants file
+     *
      * @param string $path
      *
      * @return bool
@@ -43,6 +49,10 @@ class Loader
     }
 
     /**
+     * Load & parse .const.ini & .const.{env}.ini files
+     *
+     * {env} is matched by [APP_ENV] Parameter
+     *
      * @param string $path
      *
      * @return array
@@ -92,11 +102,21 @@ class Loader
     private static function dynamize($config, $dir)
     {
         array_walk_recursive($config, function (&$value) use ($dir) {
-            $value = self::variabilize('const:([\w:\\\\]+)', $value, function ($match) {
+            $value = self::variabilize('php/const:([\w:\\\\]+)', $value, function ($match) {
+                $value = constant($match[1]);
+
                 return constant($match[1]);
             });
-            $value = self::variabilize('dir(?::(/[\w\-. ]+))?', $value, function ($match) use ($dir) {
+            $value = self::variabilize('php/dir(?::(/[\w\-. ]+))?', $value, function ($match) use ($dir) {
                 return self::normalizePath($dir . (isset($match[1]) ? $match[1] : ''));
+            });
+        });
+
+        array_walk_recursive($config, function (&$value) use (&$config) {
+            $value = self::variabilize('\{(\w+)\}', $value, function ($match) use ($config) {
+                $key = strtoupper($match[1]);
+
+                return isset($config[$key]) ? $config[$key] : $match[1];
             });
         });
 
@@ -128,8 +148,8 @@ class Loader
      */
     private static function variabilize($pattern, $str, $by)
     {
-        if (preg_match('#^@php/' . $pattern . '@?#', $str, $match)) {
-            $str = preg_replace('#^@php/' . $pattern . '@?#', $by($match), $str);
+        if (preg_match('#^@' . $pattern . '@?#', $str, $match)) {
+            $str = preg_replace('#^@' . $pattern . '@?#', $by($match), $str);
         }
 
         return $str;
