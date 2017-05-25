@@ -150,6 +150,18 @@ class DotconstTest extends TestCase
     }
 
     /**
+     * @depends testFromFiles
+     *
+     * @expectedException \Neutrino\Dotconst\Exception\Exception
+     */
+    public function testAlreadyDefinedConstant()
+    {
+        define('BASE_PATH', '');
+
+        Loader::load(__DIR__ . '/../.app_fake');
+    }
+
+    /**
      * @expectedException \Neutrino\Dotconst\Exception\InvalidFileException
      */
     public function testCompileWrongPath()
