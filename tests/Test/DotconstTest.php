@@ -58,6 +58,9 @@ class DotconstTest extends TestCase
             [['directory' => 'directory/testing'], ['directory' => '@php/dir@/testing']],
             [['directory' => 'directory' . DIRECTORY_SEPARATOR . 'testing'], ['directory' => '@php/dir:/testing@']],
             [['directory' => 'directory' . DIRECTORY_SEPARATOR . 'testing/sub'], ['directory' => '@php/dir:/testing@/sub']],
+
+            [['env' => null], ['env' => '@php/env:some_env_value']],
+            [['env' => 'test'], ['env' => '@php/env:some_env_value:test']],
         ];
     }
 
@@ -116,26 +119,28 @@ class DotconstTest extends TestCase
         $config = Loader::fromFiles(__DIR__ . '/../.app_fake');
 
         $this->assertEquals([
-            'BASE_PATH'       => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')),
-            'PUBLIC_PATH'     => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'public',
-            'STORAGE_PATH'    => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage',
-            'OVERRIDE_PATH'   => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'fake_dir',
-            'NESTED'          => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage',
-            'NESTEDSUB'       => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage/test',
-            'APP_ENV'         => 'testing',
-            'TEST_INT'        => 123,
-            'TEST_FLOAT'      => 123.123,
-            'TEST_BOOL'       => false,
-            'TEST_STR'        => 'abc',
-            'TEST_ARR_V1'     => 'v1',
-            'TEST_ARR_V2'     => 'v2',
-            'OVERRIDE_INT'    => 456,
-            'OVERRIDE_FLOAT'  => 987.5,
-            'OVERRIDE_BOOL'   => true,
-            'OVERRIDE_STR'    => 'override',
-            'OVERRIDE_ARR_V1' => 'over1',
-            'OVERRIDE_ARR_V2' => 'over2',
-            'OVERRIDE_ARR_V3' => 'over3',
+            'BASE_PATH'          => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')),
+            'PUBLIC_PATH'        => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'public',
+            'STORAGE_PATH'       => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage',
+            'OVERRIDE_PATH'      => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'fake_dir',
+            'NESTED'             => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage',
+            'NESTEDSUB'          => realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage/test',
+            'APP_ENV'            => 'testing',
+            'TEST_INT'           => 123,
+            'TEST_FLOAT'         => 123.123,
+            'TEST_BOOL'          => false,
+            'TEST_STR'           => 'abc',
+            'TEST_ARR_V1'        => 'v1',
+            'TEST_ARR_V2'        => 'v2',
+            'OVERRIDE_INT'       => 456,
+            'OVERRIDE_FLOAT'     => 987.5,
+            'OVERRIDE_BOOL'      => true,
+            'OVERRIDE_STR'       => 'override',
+            'OVERRIDE_ARR_V1'    => 'over1',
+            'OVERRIDE_ARR_V2'    => 'over2',
+            'OVERRIDE_ARR_V3'    => 'over3',
+            'ENV_WITHDEFAULT'    => 'env_var_value',
+            'ENV_WITHOUTDEFAULT' => 'bar',
         ], $config);
     }
 
@@ -209,6 +214,8 @@ class DotconstTest extends TestCase
             "define('NESTED', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage', true) . ");",
             "define('NESTEDSUB', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage/test', true) . ");",
             "define('APP_ENV', 'testing');",
+            "define('ENV_WITHDEFAULT', 'env_var_value');",
+            "define('ENV_WITHOUTDEFAULT', 'bar');",
             "define('TEST_INT', 123);",
             "define('TEST_FLOAT', 123.123);",
             "define('TEST_BOOL', false);",
