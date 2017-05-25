@@ -18,4 +18,7 @@
       <directory suffix=".php">./src</directory>
     </whitelist>
   </filter>
+  <php>
+    <env name="exist_env_var" value="bar"/>
+  </php>
 </phpunit>
