@@ -35,7 +35,7 @@ class PhpConst extends Extension
         $match = $this->match($value);
 
         if (isset($match[2])) {
-            return "{$match[1]} . '" . $match[2] . "'";
+            return "{$match[1]} . '{$match[2]}'";
         }
 
         return $match[1];

@@ -63,12 +63,12 @@ class Loader
             return [];
         }
 
-        $raw = IniFile::parse($path);
+        $raw = Helper::loadIniFile($path);
 
         $config = self::parse($raw, $path);
 
         if (!empty($config['APP_ENV']) && file_exists($pathEnv = $basePath . '.' . $config['APP_ENV'] . '.ini')) {
-            $raw = IniFile::mergeWith($raw, $pathEnv);
+            $raw = Helper::mergeConfigWithFile($raw, $pathEnv);
         }
 
         return $raw;
@@ -89,38 +89,49 @@ class Loader
     private static function dynamize($config, $dir)
     {
         foreach (Dotconst::getExtensions() as $extension) {
-            foreach ($config as &$value) {
+            foreach ($config as $const => $value) {
                 if ($extension->identify($value)) {
-                    $value = $extension->parse($value, $dir);
+                    $config[$const] = $extension->parse($value, $dir);
                 }
             }
         }
 
-        foreach ($config as &$value) {
-            $value = self::variabilize('\{(\w+)\}', $value, function ($match) use ($config) {
+        $nested = [];
+        foreach ($config as $const => $value) {
+            if (preg_match('#^@\{(\w+)\}@?#', $value, $match)) {
                 $key = strtoupper($match[1]);
 
-                return isset($config[$key]) ? $config[$key] : $match[1];
-            });
+                $value = preg_replace('#^@\{(\w+)\}@?#', '', $value);
+
+                $draw = '';
+                $require = null;
+                if(isset($config[$key])){
+                    $require = $key;
+                } else {
+                    $draw .= $match[1] ;
+                }
+
+                $value = $draw . $value;
+
+                $nested[$const] = ['require' => $require, 'value' => $value];
+            }
+        }
+
+        $nested = Helper::nestedConstSort($nested);
+
+        foreach ($nested as $const => $value) {
+            $v = null;
+            if (isset($config[$value['require']])) {
+                $v = $config[$value['require']];
+            }
+            if (!empty($value['value'])) {
+                $v .= $value['value'];
+            }
+
+            $config[$const] = $v;
         }
 
         return $config;
-    }
-
-    /**
-     * @param $pattern
-     * @param $str
-     * @param $by
-     *
-     * @return mixed
-     */
-    private static function variabilize($pattern, $str, $by)
-    {
-        if (preg_match('#^@' . $pattern . '@?#', $str, $match)) {
-            $str = preg_replace('#^@' . $pattern . '@?#', $by($match), $str);
-        }
-
-        return $str;
     }
 
     /**

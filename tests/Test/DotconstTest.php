@@ -192,8 +192,96 @@ class DotconstTest extends TestCase
         }
     }
 
+    public function testNestedConstSort()
+    {
+        $given = [
+          'A' => [
+            'require' => 'C',
+          ],
+          'B' => [
+            'require' => null,
+          ],
+          'C' => [
+            'require' => 'D',
+          ],
+          'H' => [
+            'require' => 'F',
+          ],
+          'D' => [
+            'require' => '_E_',
+          ],
+          'F' => [
+            'require' => 'A',
+          ],
+          'G' => [
+            'require' => 'A',
+          ],
+          'I' => [
+            'require' => null,
+          ],
+        ];
+
+        $expected =  [
+          'B' => [
+            'require' => null,
+          ],
+          'I' => [
+            'require' => null,
+          ],
+          'D' => [
+            'require' => '_E_',
+          ],
+          'C' => [
+            'require' => 'D',
+          ],
+          'A' => [
+            'require' => 'C',
+          ],
+          'F' => [
+            'require' => 'A',
+          ],
+          'G' => [
+            'require' => 'A',
+          ],
+          'H' => [
+            'require' => 'F',
+          ],
+        ];
+
+        $reflecion = new \ReflectionClass(Dotconst\Helper::class);
+        $method = $reflecion->getMethod('nestedConstSort');
+        $method->setAccessible(true);
+
+        $this->assertEquals(var_export($expected, true), var_export($method->invoke(null, $given), true));
+    }
+
+    /**
+     * @expectedException \Neutrino\Dotconst\Exception\CycleNestedConstException
+     */
+    public function testCyclicNestedConstSort()
+    {
+        $given = [
+          'A' => [
+            'require' => 'B',
+          ],
+          'B' => [
+            'require' => 'C',
+          ],
+          'C' => [
+            'require' => 'A',
+          ],
+        ];
+
+        $reflecion = new \ReflectionClass(Dotconst\Helper::class);
+        $method = $reflecion->getMethod('nestedConstSort');
+        $method->setAccessible(true);
+        $method->invoke(null, $given);
+    }
+
     /**
      * @depends testFromFiles
+     * @depends testNestedConstSort
+     * @depends testCyclicNestedConstSort
      */
     public function testCompile()
     {

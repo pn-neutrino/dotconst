@@ -4,9 +4,6 @@ namespace Neutrino\Dotconst;
 
 use Neutrino\Dotconst;
 use Neutrino\Dotconst\Exception\InvalidFileException;
-use Neutrino\Dotconst\Extensions\PhpConst;
-use Neutrino\Dotconst\Extensions\PhpDir;
-use Neutrino\Dotconst\Extensions\PhpEnv;
 
 /**
  * Class Compile
@@ -40,7 +37,7 @@ class Compile
 
         fwrite($r, "<?php" . PHP_EOL);
 
-        $deferred = [];
+        $nested = [];
 
         foreach ($raw as $const => $value) {
             foreach ($extensions as $k => $extension) {
@@ -61,8 +58,10 @@ class Compile
                 $value = preg_replace('#^@\{(\w+)\}@?#', '', $value);
 
                 $draw = '';
+                $require = null;
                 if(isset($config[$key])){
                     $draw .= $key;
+                    $require = $key;
                 } else {
                     $draw .= $match[1] ;
                 }
@@ -70,7 +69,7 @@ class Compile
                     $draw .= " . '$value'";
                 }
 
-                $deferred[] = "define('$const', $draw);";
+                $nested[$const] = ['draw' => $draw, 'require' => $require];
 
                 continue;
             }
@@ -78,8 +77,10 @@ class Compile
             fwrite($r, "define('$const', " . var_export($value, true) . ");" . PHP_EOL);
         }
 
-        foreach ($deferred as $item) {
-            fwrite($r, $item . PHP_EOL);
+        $nested = Helper::nestedConstSort($nested);
+
+        foreach ($nested as $const => $item) {
+            fwrite($r, "define('$const', {$item['draw']});" . PHP_EOL);
         }
 
         fclose($r);
