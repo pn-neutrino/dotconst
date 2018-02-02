@@ -2,8 +2,7 @@
 
 namespace Neutrino\Dotconst\Extensions;
 
-use Neutrino\Dotconst\Loader;
-use Neutrino\Support\Str;
+use Neutrino\Dotconst\Helper;
 
 /**
  * Class PhpDir
@@ -24,7 +23,7 @@ class PhpDir extends Extension
     {
         $match = $this->match($value);
 
-        return Loader::normalizePath($path . DIRECTORY_SEPARATOR . (isset($match[1]) ? $match[1] : '') . (isset($match[2]) ? $match[2] : ''));
+        return Helper::normalizePath($path . DIRECTORY_SEPARATOR . (isset($match[1]) ? $match[1] : '') . (isset($match[2]) ? $match[2] : ''));
     }
 
     /**
@@ -37,6 +36,6 @@ class PhpDir extends Extension
     {
         $match = $this->match($value);
 
-        return "'" . addslashes(Loader::normalizePath($path . DIRECTORY_SEPARATOR . (isset($match[1]) ? $match[1] : ''))) . "'";
+        return "'" . addslashes(Helper::normalizePath($path . DIRECTORY_SEPARATOR . (isset($match[1]) ? $match[1] : ''))) . "'";
     }
 }

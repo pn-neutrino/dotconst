@@ -41,10 +41,8 @@ class Helper
     {
         $stack = 0;
 
-        $f = function ($a, $b) use ($nested, &$stack, &$f) {
-            $stack++;
-
-            if ($stack >= 128) {
+        $sort = function ($a, $b) use ($nested, &$stack, &$sort) {
+            if ($stack++ >= 128) {
                 throw new CycleNestedConstException();
             }
 
@@ -55,7 +53,7 @@ class Helper
             } elseif (is_null($b['require'])) {
                 $return = 1;
             } elseif (isset($nested[$a['require']]) && isset($nested[$b['require']])) {
-                $return = $f($nested[$a['require']], $nested[$b['require']]);
+                $return = $sort($nested[$a['require']], $nested[$b['require']]);
             } elseif (isset($nested[$a['require']]) && !isset($nested[$b['require']])) {
                 $return = 1;
             } elseif (!isset($nested[$a['require']]) && isset($nested[$b['require']])) {
@@ -69,7 +67,7 @@ class Helper
             return $return;
         };
 
-        uasort($nested, $f);
+        uasort($nested, $sort);
 
         return $nested;
     }
@@ -89,5 +87,41 @@ class Helper
         }
 
         return $flatten;
+    }
+
+    /**
+     * @param $path
+     *
+     * @return string
+     */
+    public static function normalizePath($path)
+    {
+        if (empty($path)) {
+            return '';
+        }
+
+        $path = str_replace(DIRECTORY_SEPARATOR, '/', $path);
+
+        $parts = explode('/', $path);
+
+        $safe = [];
+        foreach ($parts as $idx => $part) {
+            if (($idx == 0 && empty($part))) {
+                $safe[] = '';
+            } elseif (trim($part) == "" || $part == '.') {
+            } elseif ('..' == $part) {
+                if (null === array_pop($safe) || empty($safe)) {
+                    $safe[] = '';
+                }
+            } else {
+                $safe[] = $part;
+            }
+        }
+
+        if (count($safe) === 1 && $safe[0] === '') {
+            return DIRECTORY_SEPARATOR;
+        }
+
+        return implode(DIRECTORY_SEPARATOR, $safe);
     }
 }
