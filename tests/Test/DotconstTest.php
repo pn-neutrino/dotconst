@@ -38,7 +38,7 @@ class DotconstTest extends TestCase
      */
     public function testNormalizePath($expected, $path)
     {
-        $reflecion = new \ReflectionClass(Loader::class);
+        $reflecion = new \ReflectionClass(Dotconst\Helper::class);
         $method = $reflecion->getMethod('normalizePath');
         $method->setAccessible(true);
 
