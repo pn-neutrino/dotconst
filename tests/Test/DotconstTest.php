@@ -2,6 +2,7 @@
 
 namespace Test;
 
+use Neutrino\Dotconst;
 use Neutrino\Dotconst\Compile;
 use Neutrino\Dotconst\Exception\InvalidFileException;
 use Neutrino\Dotconst\Loader;
@@ -37,7 +38,7 @@ class DotconstTest extends TestCase
      */
     public function testNormalizePath($expected, $path)
     {
-        $reflecion = new \ReflectionClass(Loader::class);
+        $reflecion = new \ReflectionClass(Dotconst\Helper::class);
         $method = $reflecion->getMethod('normalizePath');
         $method->setAccessible(true);
 
@@ -55,9 +56,9 @@ class DotconstTest extends TestCase
 
             [['directory' => 'directory'], ['directory' => '@php/dir']],
             [['directory' => 'directory'], ['directory' => '@php/dir@']],
-            [['directory' => 'directory/testing'], ['directory' => '@php/dir@/testing']],
+            [['directory' => 'directory'.DIRECTORY_SEPARATOR.'testing'], ['directory' => '@php/dir@/testing']],
             [['directory' => 'directory' . DIRECTORY_SEPARATOR . 'testing'], ['directory' => '@php/dir:/testing@']],
-            [['directory' => 'directory' . DIRECTORY_SEPARATOR . 'testing/sub'], ['directory' => '@php/dir:/testing@/sub']],
+            [['directory' => 'directory' . DIRECTORY_SEPARATOR . 'testing'.DIRECTORY_SEPARATOR.'sub'], ['directory' => '@php/dir:/testing@/sub']],
 
             [['env' => null], ['env' => '@php/env:some_env_value']],
             [['env' => 'test'], ['env' => '@php/env:some_env_value:test']],
@@ -132,6 +133,7 @@ class DotconstTest extends TestCase
             'TEST_STR'           => 'abc',
             'TEST_ARR_V1'        => 'v1',
             'TEST_ARR_V2'        => 'v2',
+            'TEST_CONST'      => PHP_VERSION_ID,
             'OVERRIDE_INT'       => 456,
             'OVERRIDE_FLOAT'     => 987.5,
             'OVERRIDE_BOOL'      => true,
@@ -149,7 +151,7 @@ class DotconstTest extends TestCase
      */
     public function testLoad()
     {
-        Loader::load(__DIR__ . '/../.app_fake');
+        Dotconst::load(__DIR__ . '/../.app_fake');
 
         $this->assertPredefineConstant();
     }
@@ -157,13 +159,13 @@ class DotconstTest extends TestCase
     /**
      * @depends testFromFiles
      *
-     * @expectedException \Neutrino\Dotconst\Exception\Exception
+     * @expectedException \Neutrino\Dotconst\Exception\RuntimeException
      */
     public function testAlreadyDefinedConstant()
     {
         define('BASE_PATH', '');
 
-        Loader::load(__DIR__ . '/../.app_fake');
+        Dotconst::load(__DIR__ . '/../.app_fake');
     }
 
     /**
@@ -190,8 +192,96 @@ class DotconstTest extends TestCase
         }
     }
 
+    public function testNestedConstSort()
+    {
+        $given = [
+          'A' => [
+            'require' => 'C',
+          ],
+          'B' => [
+            'require' => null,
+          ],
+          'C' => [
+            'require' => 'D',
+          ],
+          'H' => [
+            'require' => 'F',
+          ],
+          'D' => [
+            'require' => '_E_',
+          ],
+          'F' => [
+            'require' => 'A',
+          ],
+          'G' => [
+            'require' => 'A',
+          ],
+          'I' => [
+            'require' => null,
+          ],
+        ];
+
+        $expected =  [
+          'B' => [
+            'require' => null,
+          ],
+          'I' => [
+            'require' => null,
+          ],
+          'D' => [
+            'require' => '_E_',
+          ],
+          'C' => [
+            'require' => 'D',
+          ],
+          'A' => [
+            'require' => 'C',
+          ],
+          'F' => [
+            'require' => 'A',
+          ],
+          'G' => [
+            'require' => 'A',
+          ],
+          'H' => [
+            'require' => 'F',
+          ],
+        ];
+
+        $reflecion = new \ReflectionClass(Dotconst\Helper::class);
+        $method = $reflecion->getMethod('nestedConstSort');
+        $method->setAccessible(true);
+
+        $this->assertEquals(var_export($expected, true), var_export($method->invoke(null, $given), true));
+    }
+
+    /**
+     * @expectedException \Neutrino\Dotconst\Exception\CycleNestedConstException
+     */
+    public function testCyclicNestedConstSort()
+    {
+        $given = [
+          'A' => [
+            'require' => 'B',
+          ],
+          'B' => [
+            'require' => 'C',
+          ],
+          'C' => [
+            'require' => 'A',
+          ],
+        ];
+
+        $reflecion = new \ReflectionClass(Dotconst\Helper::class);
+        $method = $reflecion->getMethod('nestedConstSort');
+        $method->setAccessible(true);
+        $method->invoke(null, $given);
+    }
+
     /**
      * @depends testFromFiles
+     * @depends testNestedConstSort
+     * @depends testCyclicNestedConstSort
      */
     public function testCompile()
     {
@@ -211,17 +301,16 @@ class DotconstTest extends TestCase
             "define('PUBLIC_PATH', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'public', true) . ");",
             "define('STORAGE_PATH', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage', true) . ");",
             "define('OVERRIDE_PATH', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'fake_dir', true) . ");",
-            "define('NESTED', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage', true) . ");",
-            "define('NESTEDSUB', " . var_export(realpath(dirname(__DIR__ . '/../.app_fake/.const.ini')) . DIRECTORY_SEPARATOR . 'storage/test', true) . ");",
-            "define('APP_ENV', 'testing');",
-            "define('ENV_WITHDEFAULT', 'env_var_value');",
-            "define('ENV_WITHOUTDEFAULT', 'bar');",
+            "define('APP_ENV', (\$_ = getenv('APP_ENV')) === false ? 'testing' : \$_);",
+            "define('ENV_WITHDEFAULT', (\$_ = getenv('not_exist_env_var')) === false ? 'env_var_value' : \$_);",
+            "define('ENV_WITHOUTDEFAULT', getenv('exist_env_var'));",
             "define('TEST_INT', 123);",
             "define('TEST_FLOAT', 123.123);",
             "define('TEST_BOOL', false);",
             "define('TEST_STR', 'abc');",
             "define('TEST_ARR_V1', 'v1');",
             "define('TEST_ARR_V2', 'v2');",
+            "define('TEST_CONST', PHP_VERSION_ID);",
             "define('OVERRIDE_INT', 456);",
             "define('OVERRIDE_FLOAT', 987.5);",
             "define('OVERRIDE_BOOL', true);",
@@ -229,6 +318,8 @@ class DotconstTest extends TestCase
             "define('OVERRIDE_ARR_V1', 'over1');",
             "define('OVERRIDE_ARR_V2', 'over2');",
             "define('OVERRIDE_ARR_V3', 'over3');",
+            "define('NESTED', STORAGE_PATH);",
+            "define('NESTEDSUB', NESTED . " . var_export('/test', true) . ");",
             "",
         ]), $content);
     }
@@ -241,7 +332,7 @@ class DotconstTest extends TestCase
     {
         $appPath = __DIR__ . '/../.app_fake';
 
-        Loader::load($appPath, 'no file');
+        Dotconst::load($appPath, 'no file');
 
         $this->assertPredefineConstant();
     }
@@ -257,7 +348,7 @@ class DotconstTest extends TestCase
 
         Compile::compile($appPath, $compilePath);
 
-        Loader::load($appPath, $compilePath);
+        Dotconst::load($appPath, $compilePath);
 
         $this->assertPredefineConstant();
     }

@@ -29,12 +29,31 @@ Will become
 ```php
 DATABASE_USER === 'db_user'
 ```
+## Special key
+
+```
+base_path = @php/dir
+app_env = @php/env:APP_ENV
+php_v = @php/const:PHP_VERSION_ID
+```
+Will become :
+```php
+BASE_PATH === {base path of .const.ini file}
+APP_ENV === getenv('APP_ENV')
+PHP_V === PHP_VERSION_ID
+```
+And compile : 
+```php
+define('BASE_PATH', '{base path of .const.ini file}');
+define('APP_ENV', getenv('APP_ENV'));
+define('PHP_V', PHP_VERSION_ID);
+```
 
 ## Loading
 It's really simple, just add this to your bootstrap : 
 
 ```php
-\Neutrino\Dotconst\Loader::load('/ini_path' [, '/compile_path']);
+\Neutrino\Dotconst::load('/ini_path' [, '/compile_path']);
 ```
 
 ## Environment Overloading
@@ -77,4 +96,39 @@ user = db_user
 
 ```php
 define('DATABASE_USER', 'db_user');
+```
+
+## Extensions
+I can easily extends Dotconst : 
+```php
+class MyExtention extends \Neutrino\Dotconst\Extensions\Extension{
+    
+    protected $identifier = "php/my";
+
+    public function parse($value, $path) {
+        return 'my';
+    }
+
+    public function compile($value, $path){
+        return "'my'";
+    }
+}
+
+\Neutrino\Dotconst::addExtension(MyExtention::class);
+```
+
+In your .const.ini file : 
+```ini
+[foo]
+bar = @php/my
+```
+
+Will be parse :
+```php
+FOO_BAR === 'my'
+```
+
+And compile :
+```php
+define('FOO_BAR', 'my');
 ```
