@@ -38,13 +38,13 @@ php_v = @php/const:PHP_VERSION_ID
 ```
 Will become :
 ```php
-BASE_PATH === {path of .const.ini file}
+BASE_PATH === {base path of .const.ini file}
 APP_ENV === getenv('APP_ENV')
 PHP_V === PHP_VERSION_ID
 ```
 And compile : 
 ```php
-define('BASE_PATH', '{path of .const.ini file}');
+define('BASE_PATH', '{base path of .const.ini file}');
 define('APP_ENV', getenv('APP_ENV'));
 define('PHP_V', PHP_VERSION_ID);
 ```
